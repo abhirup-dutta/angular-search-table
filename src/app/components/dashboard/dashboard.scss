@@ -1,0 +1,46 @@
+.header {
+  color: darkslategrey;
+  margin: 1rem;
+}
+
+.table-container {
+  width: 50rem;
+  margin: 1rem;
+}
+
+.message-loading {
+  color: #556B2F; // DarkOliveGreen for better contrast (approx 5.3:1)
+}
+
+.message-error {
+  color: #DC143C;
+}
+
+.message-empty {
+  color: #8B0000;
+}
+
+table {
+  width: 100%;
+}
+
+tr {
+ background-color: white;
+  &:nth-child(even) {
+    background-color: aliceblue;
+  }
+  &:hover {
+    background-color: gainsboro;
+  }
+  td {
+    padding: 1rem;
+    border-radius: 0.25rem;
+  }
+}
+
+th {
+  background-color: #546E7A; // Slightly darker slategray for better contrast (approx 4.5:1 with white)
+  color: white;
+  height: 3rem;
+  border-radius: 0.25rem;
+}
