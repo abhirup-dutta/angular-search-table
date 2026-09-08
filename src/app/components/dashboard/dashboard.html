@@ -4,47 +4,47 @@
 </div>
 
 <div class="table-container">
+  <table aria-label="Employee List">
+    <thead>
+      <tr>
+        <th scope="col">Id</th>
+        <th scope="col">Name</th>
+        <th scope="col">Email</th>
+        <th scope="col">Age</th>
+        <th scope="col">Company</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (employee of employees(); track employee.id) {
+        <tr>
+          <td>
+            {{ employee.id }}
+          </td>
+          <td>
+            {{ employee.firstName }} {{ employee.lastName }}
+          </td>
+          <td>
+            {{ employee.email }}
+          </td>
+          <td>
+            {{ employee.age }}
+          </td>
+          <td>
+            {{ employee.company.name }}
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
   @if (isLoading()) {
     <div class="message-loading" role="status" aria-live="polite"><h2>Loading table ...</h2></div>
   } @else if (isFetchError()) {
     <div class="message-error" role="status" aria-live="polite"><h2>Error loading table</h2></div>
-  } @else if (employees().length === 0) {
-    <div class="message-empty" role="status" aria-live="polite"><h2>No employees found</h2></div>
-  } @else {
-    <table aria-label="Employee List">
-      <thead>
-        <tr>
-          <th scope="col">Id</th>
-          <th scope="col">Name</th>
-          <th scope="col">Email</th>
-          <th scope="col">Age</th>
-          <th scope="col">Company</th>
-        </tr>
-      </thead>
-      <tbody>
-        @for (employee of employees(); track employee.id) {
-          <tr>
-            <td>
-              {{ employee.id }}
-            </td>
-            <td>
-              {{ employee.firstName }} {{ employee.lastName }}
-            </td>
-            <td>
-              {{ employee.email }}
-            </td>
-            <td>
-              {{ employee.age }}
-            </td>
-            <td>
-              {{ employee.company.name }}
-            </td>
-          </tr>
-        }
-      </tbody>
-    </table>
-
+  } @else if (isNoMoreData()) {
+    <div class="message-error" role="status" aria-live="polite"><h2>No More Data Found</h2></div>
   }
+  <button (click)="loadNextPage()">Load More</button>
 </div>
 
 

@@ -14,6 +14,7 @@ export class Dashboard implements OnInit {
   employees = signal<Employee[]>([]);
   isLoading = signal(true);
   isFetchError = signal(false);
+  isNoMoreData = signal(false);
 
   readonly pageSize = 20;
 
@@ -21,6 +22,20 @@ export class Dashboard implements OnInit {
     this.employeeService.getEmployees(this.pageSize, 0).subscribe({
       next: (data) => {
         this.employees.set(data);
+        this.isLoading.set(false);
+      },
+      error: (err) => this.isFetchError.set(true),
+    });
+  }
+
+  loadNextPage() {
+    this.isLoading.set(true);
+    this.employeeService.getEmployees(this.pageSize, this.employees().length).subscribe({
+      next: (data) => {
+        if (data.length === 0) {
+          this.isNoMoreData.set(true);
+        }
+        this.employees.set([...this.employees(), ...data]);
         this.isLoading.set(false);
       },
       error: (err) => this.isFetchError.set(true),
