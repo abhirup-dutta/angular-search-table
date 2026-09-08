@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
-import { Employee } from '../../shared/model/employee';
-import { EmployeeService } from '../../shared/service/employee-service';
+import { Employee } from '../../shared/models/employee';
+import { EmployeeService } from '../../shared/services/employee-service';
+import { IntersectionObserverDirective } from '../../shared/directives/intersection-observer-directive';
 
 @Component({
-  imports: [],
+  imports: [IntersectionObserverDirective],
   selector: 'app-dashboard',
   styleUrl: './dashboard.scss',
   templateUrl: './dashboard.html',
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Dashboard implements OnInit {
   private employeeService = inject(EmployeeService);
@@ -19,13 +20,7 @@ export class Dashboard implements OnInit {
   readonly pageSize = 20;
 
   ngOnInit() {
-    this.employeeService.getEmployees(this.pageSize, 0).subscribe({
-      next: (data) => {
-        this.employees.set(data);
-        this.isLoading.set(false);
-      },
-      error: (err) => this.isFetchError.set(true),
-    });
+    this.loadNextPage();
   }
 
   loadNextPage() {

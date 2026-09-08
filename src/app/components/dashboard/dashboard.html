@@ -1,9 +1,12 @@
-
+<!-- header -->
 <div class="header">
   <h1>EMPLOYEE DIRECTORY</h1>
 </div>
 
+<!-- dynamic table container-->
 <div class="table-container">
+
+  <!-- currently displayed table -->
   <table aria-label="Employee List">
     <thead>
       <tr>
@@ -37,14 +40,16 @@
     </tbody>
   </table>
 
-  @if (isLoading()) {
-    <div class="message-loading" role="status" aria-live="polite"><h2>Loading table ...</h2></div>
-  } @else if (isFetchError()) {
-    <div class="message-error" role="status" aria-live="polite"><h2>Error loading table</h2></div>
-  } @else if (isNoMoreData()) {
-    <div class="message-error" role="status" aria-live="polite"><h2>No More Data Found</h2></div>
-  }
-  <button (click)="loadNextPage()">Load More</button>
+  <!-- When scroll down, auto-fetch more rows -->
+  <div appIntersectionObserver (intersect)="loadNextPage()">
+    @if (isLoading()) {
+      <div class="message-loading" role="status" aria-live="polite"><h2>Loading table data ...</h2></div>
+    } @else if (isFetchError()) {
+      <div class="message-error" role="status" aria-live="polite"><h2>Error loading table</h2></div>
+    } @else if (isNoMoreData()) {
+      <div class="message-error" role="status" aria-live="polite"><h2>No More Data Found</h2></div>
+    }
+  </div>
 </div>
 
 
