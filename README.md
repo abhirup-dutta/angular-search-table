@@ -1,5 +1,10 @@
 # SearchTable
 
+<img width="500" alt="screenshot showing employee table data" src="https://github.com/user-attachments/assets/20946846-100e-4fa2-bef2-97674514099b" />
+
+
+# General
+
 This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.1.4.
 
 ## Development server
