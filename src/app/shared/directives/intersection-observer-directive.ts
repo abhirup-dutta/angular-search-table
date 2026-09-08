@@ -16,8 +16,8 @@ export class IntersectionObserverDirective implements OnInit {
   ngOnInit() {
     // set observer configuration options
     const options: IntersectionObserverInit = {
-      root: null,
-      rootMargin: '150px',
+      root: this.element.nativeElement.closest('.table-container'),
+      rootMargin: '10px',
       threshold: 0.1,
     };
 

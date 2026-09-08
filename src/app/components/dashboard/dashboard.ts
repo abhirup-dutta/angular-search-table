@@ -13,7 +13,7 @@ import { IntersectionObserverDirective } from '../../shared/directives/intersect
 export class Dashboard implements OnInit {
   private employeeService = inject(EmployeeService);
   employees = signal<Employee[]>([]);
-  isLoading = signal(true);
+  isLoading = signal(false);
   isFetchError = signal(false);
   isNoMoreData = signal(false);
 
@@ -24,6 +24,9 @@ export class Dashboard implements OnInit {
   }
 
   loadNextPage() {
+    if (this.isLoading()) {
+      return;
+    }
     this.isLoading.set(true);
     this.employeeService.getEmployees(this.pageSize, this.employees().length).subscribe({
       next: (data) => {

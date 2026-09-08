@@ -4,8 +4,10 @@
 }
 
 .table-container {
-  width: 50rem;
+  max-width: 50rem;
+  max-height: 25rem;
   margin: 1rem;
+  overflow: auto;
 }
 
 .message-loading {
@@ -43,4 +45,7 @@ th {
   color: white;
   height: 3rem;
   border-radius: 0.25rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
