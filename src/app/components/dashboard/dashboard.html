@@ -1,10 +1,30 @@
 <!-- header -->
-<div class="header">
+<div class="container header">
   <h1>EMPLOYEE DIRECTORY</h1>
 </div>
 
+<!-- search container -->
+<div class="container search-container">
+  <form class="container search-form" (submit)="$event.preventDefault()">
+    <label for="search-box">Search Employees</label>
+    <input
+      id="search-box"
+      type="search"
+      [formControl]="searchControl"
+      class="search-box"
+    />
+  </form>
+  <div>
+    @for(employee of searchResource.value(); track employee.id) {
+      <div>
+        {{ employee.firstName + " " + employee.lastName }}
+      </div>
+    }
+  </div>
+</div>
+
 <!-- dynamic table container-->
-<div class="table-container">
+<div class="container table-container">
 
   <!-- currently displayed table -->
   <table aria-label="Employee List">

@@ -1,6 +1,28 @@
+.container {
+  max-width: 50rem;
+  margin: 1rem;
+  border-radius: 0.25rem;
+}
+
 .header {
   color: darkslategrey;
   margin: 1rem;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: row;
+  height: 2rem;
+  gap: 1rem;
+  justify-content: left;
+  align-items: center;
+}
+
+.search-box {
+  height: 100%;
+  width: 20rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
 }
 
 .table-container {

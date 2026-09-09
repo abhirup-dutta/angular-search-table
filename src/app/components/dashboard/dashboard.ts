@@ -2,9 +2,12 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { Employee } from '../../shared/models/employee';
 import { EmployeeService } from '../../shared/services/employee-service';
 import { IntersectionObserverDirective } from '../../shared/directives/intersection-observer-directive';
+import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { debounceTime, distinctUntilChanged } from 'rxjs';
+import { rxResource, toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
-  imports: [IntersectionObserverDirective],
+  imports: [IntersectionObserverDirective, ReactiveFormsModule],
   selector: 'app-dashboard',
   styleUrl: './dashboard.scss',
   templateUrl: './dashboard.html',
@@ -18,6 +21,17 @@ export class Dashboard implements OnInit {
   isNoMoreData = signal(false);
 
   readonly pageSize = 20;
+
+  searchControl = new FormControl('', { nonNullable: true });
+
+  searchQuery = toSignal(
+    this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()),
+  );
+
+  searchResource = rxResource({
+    params: () => ({ query: this.searchQuery() }),
+    stream: ({ params }) => this.employeeService.searchEmployees(params?.query ?? ''),
+  });
 
   ngOnInit() {
     this.loadNextPage();
