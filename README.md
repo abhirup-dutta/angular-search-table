@@ -1,6 +1,13 @@
 # SearchTable
 
+## Table with Backend Pagination
+
 <img width="500" alt="screenshot showing employee table data" src="https://github.com/user-attachments/assets/20946846-100e-4fa2-bef2-97674514099b" />
+
+## Search & Autocomplete
+
+<img width="500" alt="screenshot showing search and autocomplete suggestions" src="https://github.com/user-attachments/assets/2c351a5c-f495-4129-9c1b-a1255e92ee1a" />
+
 
 
 # General
