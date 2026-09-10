@@ -1,11 +1,49 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { Employee } from '../../shared/models/employee';
 import { EmployeeService } from '../../shared/services/employee-service';
 import { IntersectionObserverDirective } from '../../shared/directives/intersection-observer-directive';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { debounceTime, distinctUntilChanged } from 'rxjs';
-import { rxResource, toSignal } from '@angular/core/rxjs-interop';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  exhaustMap,
+  finalize,
+  of,
+  startWith,
+  Subject,
+  switchMap,
+  tap,
+} from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
+/**
+ * Dashboard Component
+ * ===================
+ * High-Level Design Logic:
+ * ------------------------
+ * This component pairs RxJS concurrency operators (`switchMap` and `exhaustMap`) with Angular writable signals to deliver a race-condition-free, infinite-scrolling search table.
+ * Complex asynchronous orchestration is delegated to RxJS streams while component state is stored directly in simple signals (`employees`, `isLoading`, `isFetchError`, `isNoMoreData`), making UI bindings straightforward and easy to debug.
+ * Automatic lifecycle cleanup is handled via `takeUntilDestroyed()` to prevent memory leaks.
+ *
+ * Data Flow & Execution:
+ * ----------------------
+ * 1. User search input from `searchControl` is debounced (300ms), deduplicated (`distinctUntilChanged`), and seeded on init with `startWith('')`.
+ * 2. `switchMap` catches each search query change, resets state signals, and switches to a nested `loadMorePages$` pagination stream seeded with `startWith(void 0)` for immediate page 0 fetching.
+ * 3. Each pagination event passes through `exhaustMap`, where the zero-based `pageIndex` calculates the pagination `offset = pageIndex * pageSize` and triggers either `searchEmployees` or `getEmployees`.
+ * 4. Responses update `employees` (`replace` on page 0, `append` on subsequent pages), evaluate `isNoMoreData`, and finalize `isLoading` via `tap`/`finalize`.
+ *
+ * Practical Examples & Concurrency Handling:
+ * -------------------------------------------
+ * - Initial Load: On startup, `startWith('')` and `startWith(void 0)` immediately dispatch `getEmployees(20, 0)` to populate the table.
+ * - Search Typing: When a user types "john", `switchMap` immediately unsubscribes from any in-flight pagination request, clears existing table data, and starts fetching matching search results from offset 0.
+ * - Infinite Scrolling: Rapid scrolling triggers multiple intersection events via `loadNextPage()`, but `exhaustMap` safely ignores new requests until the current page batch resolves, preventing duplicate page offsets and duplicate row appends.
+ */
 @Component({
   imports: [IntersectionObserverDirective, ReactiveFormsModule],
   selector: 'app-dashboard',
@@ -13,44 +51,125 @@ import { rxResource, toSignal } from '@angular/core/rxjs-interop';
   templateUrl: './dashboard.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Dashboard implements OnInit {
+export class Dashboard {
   private employeeService = inject(EmployeeService);
+
+  readonly PAGE_SIZE = 20;
+  readonly DEBOUNCE_DELAY = 300;
+
+  searchControl = new FormControl('', { nonNullable: true });
+  private loadMorePages$ = new Subject<void>();
+
   employees = signal<Employee[]>([]);
   isLoading = signal(false);
   isFetchError = signal(false);
   isNoMoreData = signal(false);
 
-  readonly pageSize = 20;
+  constructor() {
+    this.searchControl.valueChanges
+      .pipe(
+        debounceTime(this.DEBOUNCE_DELAY),
+        distinctUntilChanged(),
+        // Set the initial query value to '' so the component fetches data immediately on startup.
+        startWith(this.searchControl.value),
+        /**
+         * When the search term changes:
+         * 1. Unsubscribes from and aborts any active/in-flight HTTP requests from the previous searchQuery.
+         * 2. Resets UI signals for the fresh search context.
+         * 3. Switches to a brand new `loadMorePages$` pagination sub-stream scoped to the new searchQuery.
+         */
+        switchMap((searchQuery) => {
+          // Reset UI signals when a new searchQuery is initiated
+          this.employees.set([]);
+          this.isNoMoreData.set(false);
+          this.isFetchError.set(false);
 
-  searchControl = new FormControl('', { nonNullable: true });
+          /**
+           * This is for pagination coordination for a specific search searchQuery.
+           */
+          return this.loadMorePages$.pipe(
+            /**
+             *  Instantly emits an initial trigger (`undefined`) into the pipeline.
+             *  so that Page 0 is fetched immediately upon component
+             *  startup or upon switching search queries, without waiting for a scroll event.
+             */
+            startWith(void 0),
 
-  searchQuery = toSignal(
-    this.searchControl.valueChanges.pipe(debounceTime(300), distinctUntilChanged()),
-  );
+            /**
+             *   If the user rapidly scrolls or triggers multiple intersection events
+             *   while an API call is currently in flight, `exhaustMap` ignores all subsequent scroll
+             *   triggers until the current request completely finishes. This prevents duplicate page offsets
+             *   and duplicate row appends.
+             */
+            exhaustMap((_, pageIndex) => {
+              this.isLoading.set(true);
+              this.isFetchError.set(false);
 
-  searchResource = rxResource({
-    params: () => ({ query: this.searchQuery() }),
-    stream: ({ params }) => this.employeeService.searchEmployees(params?.query ?? ''),
-  });
+              const offset = pageIndex * this.PAGE_SIZE;
 
-  ngOnInit() {
-    this.loadNextPage();
+              /**
+               * Endpoint Selection:
+               * - If `searchQuery` is non-empty, we call the endpoint for search.
+               * - If `searchQuery` is empty, we call the endpoint for a simple get.
+               */
+              const fetchEndPoint$ = searchQuery
+                ? this.employeeService.searchEmployees(searchQuery, this.PAGE_SIZE, offset)
+                : this.employeeService.getEmployees(this.PAGE_SIZE, offset);
+
+              /**
+               * Handles the execution, signal mutations, error isolation, and teardown
+               * for a single page request.
+               */
+              return fetchEndPoint$.pipe(
+                /**
+                 * Performs synchronous side effects without altering the stream values.
+                 */
+                tap({
+                  next: (data) => {
+                    /**
+                     * If initial/reset page, then reset employees with new data,
+                     * otherwise append new records to existing employees.
+                     */
+                    this.employees.update((current) =>
+                      pageIndex === 0 ? data : [...current, ...data],
+                    );
+                    /**
+                     * If the items returned are fewer than `pageSize`, then we can infer
+                     * that this is the last page and no more pages need to be fetched.
+                     */
+                    this.isNoMoreData.set(data.length < this.PAGE_SIZE);
+                  },
+                  error: () => {
+                    this.isFetchError.set(true);
+                  },
+                }),
+
+                /**
+                 * Prevents the entire Observable chain from termination due to an uncaught error.
+                 * This ensures the user can still search or retry scrolling after a failure.
+                 */
+                catchError(() => of(null)),
+
+                /**
+                 * Whenever the inner Observable completes, errors, or is cancelled
+                 * by `switchMap`. This guarantees `isLoading` is reliably reset to `false` under all conditions.
+                 */
+                finalize(() => {
+                  this.isLoading.set(false);
+                }),
+              );
+            }),
+          );
+        }),
+        // Automatically unsubscribes from the entire stream when the component is destroyed.
+        takeUntilDestroyed(),
+      )
+      .subscribe();
   }
 
   loadNextPage() {
-    if (this.isLoading()) {
-      return;
+    if (!this.isLoading() && !this.isNoMoreData()) {
+      this.loadMorePages$.next();
     }
-    this.isLoading.set(true);
-    this.employeeService.getEmployees(this.pageSize, this.employees().length).subscribe({
-      next: (data) => {
-        if (data.length === 0) {
-          this.isNoMoreData.set(true);
-        }
-        this.employees.set([...this.employees(), ...data]);
-        this.isLoading.set(false);
-      },
-      error: (err) => this.isFetchError.set(true),
-    });
   }
 }

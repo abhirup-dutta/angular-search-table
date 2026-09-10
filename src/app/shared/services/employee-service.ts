@@ -17,11 +17,11 @@ export class EmployeeService {
     );
   }
 
-  searchEmployees(query: string): Observable<Employee[]> {
+  searchEmployees(query: string, limit: number, skip: number): Observable<Employee[]> {
     if (!query) {
       return of([]);
     }
-    return this.http.get<{ users: Employee[] }>(`${this.baseUrl}/users/search?q=${query}`).pipe(
+    return this.http.get<{ users: Employee[] }>(`${this.baseUrl}/users/search?q=${query}&limit=${limit}&skip=${skip}`).pipe(
       delay(500),
       map(response => response.users)
     );

@@ -14,13 +14,6 @@
       class="search-box"
     />
   </form>
-  <div>
-    @for(employee of searchResource.value(); track employee.id) {
-      <div>
-        {{ employee.firstName + " " + employee.lastName }}
-      </div>
-    }
-  </div>
 </div>
 
 <!-- dynamic table container-->
