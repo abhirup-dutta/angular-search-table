@@ -22,28 +22,6 @@ import {
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
-/**
- * Dashboard Component
- * ===================
- * High-Level Design Logic:
- * ------------------------
- * This component pairs RxJS concurrency operators (`switchMap` and `exhaustMap`) with Angular writable signals to deliver a race-condition-free, infinite-scrolling search table.
- * Complex asynchronous orchestration is delegated to RxJS streams while component state is stored directly in simple signals (`employees`, `isLoading`, `isFetchError`, `isNoMoreData`), making UI bindings straightforward and easy to debug.
- * Automatic lifecycle cleanup is handled via `takeUntilDestroyed()` to prevent memory leaks.
- *
- * Data Flow & Execution:
- * ----------------------
- * 1. User search input from `searchControl` is debounced (300ms), deduplicated (`distinctUntilChanged`), and seeded on init with `startWith('')`.
- * 2. `switchMap` catches each search query change, resets state signals, and switches to a nested `loadMorePages$` pagination stream seeded with `startWith(void 0)` for immediate page 0 fetching.
- * 3. Each pagination event passes through `exhaustMap`, where the zero-based `pageIndex` calculates the pagination `offset = pageIndex * pageSize` and triggers either `searchEmployees` or `getEmployees`.
- * 4. Responses update `employees` (`replace` on page 0, `append` on subsequent pages), evaluate `isNoMoreData`, and finalize `isLoading` via `tap`/`finalize`.
- *
- * Practical Examples & Concurrency Handling:
- * -------------------------------------------
- * - Initial Load: On startup, `startWith('')` and `startWith(void 0)` immediately dispatch `getEmployees(20, 0)` to populate the table.
- * - Search Typing: When a user types "john", `switchMap` immediately unsubscribes from any in-flight pagination request, clears existing table data, and starts fetching matching search results from offset 0.
- * - Infinite Scrolling: Rapid scrolling triggers multiple intersection events via `loadNextPage()`, but `exhaustMap` safely ignores new requests until the current page batch resolves, preventing duplicate page offsets and duplicate row appends.
- */
 @Component({
   imports: [IntersectionObserverDirective, ReactiveFormsModule],
   selector: 'app-dashboard',
@@ -117,8 +95,7 @@ export class Dashboard {
                 : this.employeeService.getEmployees(this.PAGE_SIZE, offset);
 
               /**
-               * Handles the execution, signal mutations, error isolation, and teardown
-               * for a single page request.
+               * Handles operations for a single page request.
                */
               return fetchEndPoint$.pipe(
                 /**
@@ -151,22 +128,23 @@ export class Dashboard {
                 catchError(() => of(null)),
 
                 /**
-                 * Whenever the inner Observable completes, errors, or is cancelled
-                 * by `switchMap`. This guarantees `isLoading` is reliably reset to `false` under all conditions.
+                 * Whenever the inner Observable completes, errors, or is cancelled,
+                 * this guarantees `isLoading` is reliably reset to `false` under all conditions.
                  */
                 finalize(() => {
                   this.isLoading.set(false);
                 }),
-              );
-            }),
-          );
-        }),
+              ); // end of fetch end point pipe
+            }), // end of exhaustMap() for pagination control
+          ); // end of this.loadMorePages$.pipe
+        }), // end of switchMap() for queries
         // Automatically unsubscribes from the entire stream when the component is destroyed.
         takeUntilDestroyed(),
-      )
-      .subscribe();
+      ) // end of main stream pipe
+      .subscribe(); // trigger the observable
   }
 
+  // Used by template IntersectionObserver when the user scrolls to the bottom of the page.
   loadNextPage() {
     if (!this.isLoading() && !this.isNoMoreData()) {
       this.loadMorePages$.next();
