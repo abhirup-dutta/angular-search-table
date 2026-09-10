@@ -5,15 +5,38 @@
 
 <!-- search container -->
 <div class="container search-container">
-  <form class="container search-form" (submit)="$event.preventDefault()">
+  <form class="container search-form" (submit)="$event.preventDefault(); onEnter()">
     <label for="search-box">Search Employees</label>
     <input
       id="search-box"
       type="search"
       [formControl]="searchControl"
       class="search-box"
+      (input)="showDropdown.set(true)"
+      (keydown.enter)="onEnter()"
     />
   </form>
+  @if (showDropdown() && searchControl.value && (isLoading() || isFetchError() || employees().length > 0)) {
+    <div class="autocomplete-dropdown" role="listbox">
+      @if (isLoading()) {
+        <div class="message-loading dropdown-item">Loading suggestions...</div>
+      } @else if (isFetchError()) {
+        <div class="message-error dropdown-item">Error loading suggestions</div>
+      } @else {
+        @for (employee of employees(); track employee.id) {
+          <div
+            class="dropdown-item suggestion-item"
+            role="option"
+            tabindex="0"
+            (click)="selectEmployee(employee)"
+            (keydown.enter)="selectEmployee(employee)"
+          >
+            {{ employee.firstName + " " + employee.lastName }}
+          </div>
+        }
+      }
+    </div>
+  }
 </div>
 
 <!-- dynamic table container-->

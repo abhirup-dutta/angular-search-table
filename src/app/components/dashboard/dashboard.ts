@@ -42,10 +42,12 @@ export class Dashboard {
   isLoading = signal(false);
   isFetchError = signal(false);
   isNoMoreData = signal(false);
+  showDropdown = signal(true);
 
   constructor() {
     this.searchControl.valueChanges
       .pipe(
+        tap(() => this.showDropdown.set(true)),
         debounceTime(this.DEBOUNCE_DELAY),
         distinctUntilChanged(),
         // Set the initial query value to '' so the component fetches data immediately on startup.
@@ -149,5 +151,18 @@ export class Dashboard {
     if (!this.isLoading() && !this.isNoMoreData()) {
       this.loadMorePages$.next();
     }
+  }
+
+  onEnter() {
+    this.showDropdown.set(false);
+  }
+
+  selectEmployee(employee: Employee | string) {
+    const value =
+      typeof employee === 'string'
+        ? employee
+        : `${employee.firstName} ${employee.lastName}`;
+    this.searchControl.setValue(value);
+    this.showDropdown.set(false);
   }
 }
