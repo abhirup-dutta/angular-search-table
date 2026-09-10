@@ -21,7 +21,10 @@ export class EmployeeService {
     if (!query) {
       return of([]);
     }
-    return this.http.get<{ users: Employee[] }>(`${this.baseUrl}/users/search?q=${query}&limit=${limit}&skip=${skip}`).pipe(
+    // Backend doesn't allow spaces in query or multiple words
+    let fetchQuery = query.split(' ')[0];
+    return this.http.get<{ users: Employee[] }>(`${this.baseUrl}/users/search?q=${fetchQuery}&limit=${limit}&skip=${skip}`).pipe(
+      // Test delay to ensure the application handles this properly
       delay(500),
       map(response => response.users)
     );

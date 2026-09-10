@@ -65,17 +65,20 @@ describe('Dashboard Component Autocomplete', () => {
     expect(dropdown).toBeNull();
   });
 
-  it('should display suggestion items when searchControl has value and employees are present', () => {
+  it('should display suggestion items inside search-box-container when searchControl has value and employees are present', () => {
     component.searchControl.setValue('Jo');
     component.employees.set(mockEmployees);
     component.isLoading.set(false);
     component.isFetchError.set(false);
     fixture.detectChanges();
 
-    const dropdown = fixture.debugElement.query(By.css('.autocomplete-dropdown'));
+    const searchBoxContainer = fixture.debugElement.query(By.css('.search-box-container'));
+    expect(searchBoxContainer).toBeTruthy();
+
+    const dropdown = searchBoxContainer.query(By.css('.autocomplete-dropdown'));
     expect(dropdown).toBeTruthy();
 
-    const items = fixture.debugElement.queryAll(By.css('.suggestion-item'));
+    const items = dropdown.queryAll(By.css('.suggestion-item'));
     expect(items.length).toBe(2);
     expect(items[0].nativeElement.textContent.trim()).toBe('John Doe');
     expect(items[1].nativeElement.textContent.trim()).toBe('Jane Smith');

@@ -22,9 +22,16 @@
   align-items: center;
 }
 
+.search-box-container {
+  position: relative;
+  display: flex;
+  height: 100%;
+}
+
 .search-box {
   height: 100%;
   width: 20rem;
+  box-sizing: border-box;
   border: 1px solid #ccc;
   border-radius: 0.5rem;
 }
@@ -32,9 +39,10 @@
 .autocomplete-dropdown {
   position: absolute;
   top: 100%;
-  left: 1rem;
+  left: 0;
   z-index: 10;
-  width: 20rem;
+  width: 100%;
+  box-sizing: border-box;
   max-height: 15rem;
   overflow-y: auto;
   background-color: white;
